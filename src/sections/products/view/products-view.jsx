@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { doc, setDoc, getDocs, collection } from 'firebase/firestore';
+import {ref, getStorage, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
-import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import TableBody from '@mui/material/TableBody';
 import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
-
-import { users } from 'src/_mock/user';
+import {
+  Button,
+  Dialog,
+  TextField,
+  DialogTitle,
+  DialogActions,
+  DialogContent,
+} from '@mui/material';
 
 import Iconify from 'src/components/iconify';
 import Scrollbar from 'src/components/scrollbar';
@@ -18,12 +25,75 @@ import Scrollbar from 'src/components/scrollbar';
 import TableNoData from '../table-no-data';
 import UserTableRow from '../user-table-row';
 import UserTableHead from '../user-table-head';
+import { db } from '../../../firebase/firebase';
 import TableEmptyRows from '../table-empty-rows';
 import UserTableToolbar from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
 
 
-export default function EmployeesView() {
+
+
+export default function ProductsView() {
+  const [productName, setProductName] = useState('');
+  const [productCode, setProductCode] = useState('');
+  const [productQuantity, setProductQuantity] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePath, setImagePath] = useState(''); // Store the uploaded image URL
+
+
+
+  const handleInputChange = (event, setter) => {
+    setter(event.target.value);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const docRef = doc(collection(db, 'products'), productCode.toLowerCase()); // Use product name (lowercase) as custom ID
+
+      uploadImage();
+      await setDoc(docRef, {
+        name: productName,
+        quantity: Number(productQuantity), // Ensure productQuantity is a number
+        description: productDescription,
+        price: Number(productPrice), // Ensure productPrice is a number
+        imageURL: imagePath
+        // Add any other product properties if needed
+      });
+
+      console.log('Product added with ID:', docRef.id);
+      handleCloseAddProductDialog()
+    } catch (error) {
+      console.error('Error adding product:', error);
+      // Handle errors appropriately, e.g., display user-friendly messages
+    }
+  };
+
+
+
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const productsCollection = collection(db, 'products');
+        const productsSnapshot = await getDocs(productsCollection);
+        // eslint-disable-next-line no-shadow
+        const productsList = productsSnapshot.docs.map(doc => doc.data());
+        setProducts(productsList);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+
+
+
+
   const [page, setPage] = useState(0);
 
   const [order, setOrder] = useState('asc');
@@ -44,9 +114,10 @@ export default function EmployeesView() {
     }
   };
 
+
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelecteds = users.map((n) => n.name);
+      const newSelecteds = products.map((n) => n.name);
       setSelected(newSelecteds);
       return;
     }
@@ -86,20 +157,73 @@ export default function EmployeesView() {
   };
 
   const dataFiltered = applyFilter({
-    inputData: users,
+    inputData: products,
     comparator: getComparator(order, orderBy),
     filterName,
   });
 
   const notFound = !dataFiltered.length && !!filterName;
 
+
+
+
+
+
+  const [openAddProductDialog, setOpenAddProductDialog] = useState(false);
+
+  // ... other functions
+
+  const handleAddProductClick = () => {
+    setOpenAddProductDialog(true);
+  };
+
+  const handleCloseAddProductDialog = () => {
+    setOpenAddProductDialog(false);
+  };
+
+
+
+  const handleImageChange = (event) => {
+    const selectedFile = event.target.files[0];
+
+    if (!selectedFile) {
+      return;
+    }
+
+    setSelectedImage(selectedFile);
+  };
+
+  const uploadImage = async () => {
+    if (!selectedImage) {
+      return; // Handle missing image
+    }
+
+    const storage = getStorage(); // Initialize Firebase Storage
+
+    const storageRef = ref(storage, `products/${selectedImage.name}`); // Create a reference with product name
+
+    try {
+      await uploadBytes(storageRef, selectedImage);
+      const downloadURL = await getDownloadURL(storageRef);
+      setImagePath(downloadURL);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Handle errors appropriately, e.g., display user-friendly messages
+    }
+  };
+
+
+
+
+
+
   return (
     <Container>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
-        <Typography variant="h4">Employees</Typography>
+        <Typography variant="h4">Products</Typography>
 
-        <Button variant="contained" color="inherit" startIcon={<Iconify icon="eva:plus-fill" />}>
-          New employee
+        <Button variant="contained" color="inherit" onClick={handleAddProductClick} startIcon={<Iconify icon="eva:plus-fill" />}>
+          New product
         </Button>
       </Stack>
 
@@ -116,16 +240,15 @@ export default function EmployeesView() {
               <UserTableHead
                 order={order}
                 orderBy={orderBy}
-                rowCount={users.length}
+                rowCount={products.length}
                 numSelected={selected.length}
                 onRequestSort={handleSort}
                 onSelectAllClick={handleSelectAllClick}
                 headLabel={[
                   { id: 'name', label: 'Name' },
-                  { id: 'email', label: 'Email' },
-                  { id: 'orders', label: 'Orders' },
-                  { id: 'date_employed', label: 'Employment date', align: 'center' },
-                  { id: 'status', label: 'Status' },
+                  { id: 'quantity', label: 'Quantity' },
+                  { id: 'description', label: 'Description' },
+                  { id: 'price', label: 'Price' },
                   { id: '' },
                 ]}
               />
@@ -136,11 +259,9 @@ export default function EmployeesView() {
                     <UserTableRow
                       key={row.id}
                       name={row.name}
-                      role={row.role}
-                      status={row.status}
-                      company={row.company}
-                      avatarUrl={row.avatarUrl}
-                      isVerified={row.isVerified}
+                      quantity={row.quantity}
+                      description={row.description}
+                      price={row.price}
                       selected={selected.indexOf(row.name) !== -1}
                       handleClick={(event) => handleClick(event, row.name)}
                     />
@@ -148,7 +269,7 @@ export default function EmployeesView() {
 
                 <TableEmptyRows
                   height={77}
-                  emptyRows={emptyRows(page, rowsPerPage, users.length)}
+                  emptyRows={emptyRows(page, rowsPerPage, products.length)}
                 />
 
                 {notFound && <TableNoData query={filterName} />}
@@ -160,13 +281,85 @@ export default function EmployeesView() {
         <TablePagination
           page={page}
           component="div"
-          count={users.length}
+          count={products.length}
           rowsPerPage={rowsPerPage}
           onPageChange={handleChangePage}
           rowsPerPageOptions={[5, 10, 25]}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Card>
+
+
+
+      <Dialog
+        open={openAddProductDialog}
+        onClose={handleCloseAddProductDialog}
+        aria-labelledby="add-product-dialog-title">
+        <DialogTitle id="add-product-dialog-title">Add Product</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Product Name"
+            fullWidth
+            margin="normal"
+            value={productName}
+            onChange={(event) => handleInputChange(event, setProductName)}
+            required
+          />
+          <TextField
+            label="Product Code"
+            type="number" // Ensure numerical input
+            fullWidth
+            margin="normal"
+            value={productCode}
+            onChange={(event) => handleInputChange(event, setProductCode)}
+            required
+          />
+          <TextField
+            label="Product Quantity"
+            type="number" // Ensure numerical input
+            fullWidth
+            margin="normal"
+            value={productQuantity}
+            onChange={(event) => handleInputChange(event, setProductQuantity)}
+            required
+          />
+          <TextField
+            label="Product Description"
+            fullWidth
+            margin="normal"
+            value={productDescription}
+            onChange={(event) => handleInputChange(event, setProductDescription)}
+            required
+          />
+          <TextField
+            label="Product Price"
+            type="number" // Ensure numerical input
+            fullWidth
+            margin="normal"
+            value={productPrice}
+            onChange={(event) => handleInputChange(event, setProductPrice)}
+            required
+          />
+          <TextField
+            label="Product Image"
+            type="file" // File input for image selection
+            fullWidth
+            margin="normal"
+            onChange={handleImageChange}
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddProductDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="primary" disabled={!productName || !productQuantity || !productDescription || !productPrice}>
+            Add Product
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
     </Container>
   );
 }

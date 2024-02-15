@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
+import { getDocs, collection } from 'firebase/firestore';
+
 import { db } from './firebase';
+
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -7,16 +10,16 @@ const UserList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const userCollection = db.collection('users');
-        const snapshot = await userCollection.get();
-        const userList = snapshot.docs.map((doc) => doc.data());
+        const userCollection = collection(db, 'users');
+        const userSnapshot = await getDocs(userCollection);
+        const userList = userSnapshot.docs.map(doc => doc.data());
         setUsers(userList);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     };
 
-    fetchUsers();
+    fetchUsers()
   }, []);
 
   return (
@@ -24,8 +27,8 @@ const UserList = () => {
       <h2>User List</h2>
       <ul>
         {users.map((user) => (
-          <li key={user.id}>
-            {user.name} ({user.role})
+          <li key={user.uid}>
+            {user.username} ({user.uid})
           </li>
         ))}
       </ul>

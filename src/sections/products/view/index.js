@@ -1,1 +1,1 @@
-export { default as EmployeesView } from './employees-view';
+export { default as ProductsView } from './products-view';

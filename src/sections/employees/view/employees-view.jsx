@@ -22,7 +22,6 @@ import TableEmptyRows from '../table-empty-rows';
 import UserTableToolbar from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
 
-// ----------------------------------------------------------------------
 
 export default function EmployeesView() {
   const [page, setPage] = useState(0);
@@ -97,10 +96,10 @@ export default function EmployeesView() {
   return (
     <Container>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
-        <Typography variant="h4">Users</Typography>
+        <Typography variant="h4">Employees</Typography>
 
         <Button variant="contained" color="inherit" startIcon={<Iconify icon="eva:plus-fill" />}>
-          New User
+          New employee
         </Button>
       </Stack>
 
@@ -123,9 +122,9 @@ export default function EmployeesView() {
                 onSelectAllClick={handleSelectAllClick}
                 headLabel={[
                   { id: 'name', label: 'Name' },
-                  { id: 'company', label: 'Company' },
-                  { id: 'role', label: 'Role' },
-                  { id: 'isVerified', label: 'Verified', align: 'center' },
+                  { id: 'email', label: 'Email' },
+                  { id: 'orders', label: 'Orders' },
+                  { id: 'date_employed', label: 'Employment date', align: 'center' },
                   { id: 'status', label: 'Status' },
                   { id: '' },
                 ]}

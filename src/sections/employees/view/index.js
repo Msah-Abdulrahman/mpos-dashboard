@@ -1,1 +1,1 @@
-export { default as EmployeeView } from './employee-view';
+export { default as EmployeesView } from './employees-view';
