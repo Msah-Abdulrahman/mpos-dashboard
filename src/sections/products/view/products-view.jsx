@@ -40,7 +40,6 @@ export default function ProductsView() {
   const [productDescription, setProductDescription] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePath, setImagePath] = useState(''); // Store the uploaded image URL
 
 
 
@@ -50,15 +49,23 @@ export default function ProductsView() {
 
   const handleSubmit = async () => {
     try {
+      if (!selectedImage) {
+        alert("Please select an image")
+        return; // Handle missing image
+      }
       const docRef = doc(collection(db, 'products'), productCode.toLowerCase()); // Use product name (lowercase) as custom ID
+      const storage = getStorage(); // Initialize Firebase Storage
+      const storageRef = ref(storage, `products/${selectedImage.name}`); // Create a reference with product name
+      await uploadBytes(storageRef, selectedImage);
+      const downloadURL = await getDownloadURL(storageRef);
 
-      uploadImage();
+
       await setDoc(docRef, {
         name: productName,
         quantity: Number(productQuantity), // Ensure productQuantity is a number
         description: productDescription,
         price: Number(productPrice), // Ensure productPrice is a number
-        imageURL: imagePath
+        imageURL: downloadURL
         // Add any other product properties if needed
       });
 
@@ -193,29 +200,6 @@ export default function ProductsView() {
     setSelectedImage(selectedFile);
   };
 
-  const uploadImage = async () => {
-    if (!selectedImage) {
-      return; // Handle missing image
-    }
-
-    const storage = getStorage(); // Initialize Firebase Storage
-
-    const storageRef = ref(storage, `products/${selectedImage.name}`); // Create a reference with product name
-
-    try {
-      await uploadBytes(storageRef, selectedImage);
-      const downloadURL = await getDownloadURL(storageRef);
-      setImagePath(downloadURL);
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      // Handle errors appropriately, e.g., display user-friendly messages
-    }
-  };
-
-
-
-
-
 
   return (
     <Container>
@@ -340,18 +324,17 @@ export default function ProductsView() {
             onChange={(event) => handleInputChange(event, setProductPrice)}
             required
           />
-          <TextField
-            label="Product Image"
-            type="file" // File input for image selection
-            fullWidth
-            margin="normal"
+
+          <input
+            type="file"
+            accept="image/*"
             onChange={handleImageChange}
             required
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseAddProductDialog} color="primary">
-            Cancel
+          Cancel
           </Button>
           <Button onClick={handleSubmit} color="primary" disabled={!productName || !productQuantity || !productDescription || !productPrice}>
             Add Product

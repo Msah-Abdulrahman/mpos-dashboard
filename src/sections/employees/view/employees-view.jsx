@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { doc, setDoc, collection } from 'firebase/firestore';
+import { ref, getStorage, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
@@ -9,6 +11,7 @@ import TableBody from '@mui/material/TableBody';
 import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
+import { Dialog, TextField, DialogTitle, DialogActions, DialogContent } from '@mui/material';
 
 import { users } from 'src/_mock/user';
 
@@ -18,12 +21,110 @@ import Scrollbar from 'src/components/scrollbar';
 import TableNoData from '../table-no-data';
 import UserTableRow from '../user-table-row';
 import UserTableHead from '../user-table-head';
+import { db } from '../../../firebase/firebase';
 import TableEmptyRows from '../table-empty-rows';
 import UserTableToolbar from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
 
 
 export default function EmployeesView() {
+
+  const [employeeName, setEmployeeName] = useState('');
+  const [dateEmployed, setDateEmployed] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePath, setImagePath] = useState(''); // Store the uploaded image URL
+
+
+
+  const handleInputChange = (event, setter) => {
+    setter(event.target.value);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const docRef = doc(collection(db, 'employees'));
+
+      uploadImage();
+      await setDoc(docRef, {
+        name: employeeName,
+        dateEmployed,
+        imageURL: imagePath
+      });
+
+      console.log('Employee added with ID:', docRef.id);
+      handleCloseAddEmployeeDialog()
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      // Handle errors appropriately, e.g., display user-friendly messages
+    }
+  };
+
+
+
+
+
+
+
+
+
+  const [openAddEmployeeDialog, setOpenAddEmployeeDialog] = useState(false);
+  
+  const handleAddEmployeeClick = () => {
+    setOpenAddEmployeeDialog(true);
+  };
+
+  const handleCloseAddEmployeeDialog = () => {
+    setOpenAddEmployeeDialog(false);
+  };
+
+
+
+  const handleImageChange = (event) => {
+    const selectedFile = event.target.files[0];
+
+    if (!selectedFile) {
+      return;
+    }
+
+    setSelectedImage(selectedFile);
+  };
+
+  const uploadImage = async () => {
+    if (!selectedImage) {
+      return; // Handle missing image
+    }
+
+    const storage = getStorage(); // Initialize Firebase Storage
+
+    const storageRef = ref(storage, `employees/${selectedImage.name}`);
+
+    try {
+      await uploadBytes(storageRef, selectedImage);
+      const downloadURL = await getDownloadURL(storageRef);
+      setImagePath(downloadURL);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Handle errors appropriately, e.g., display user-friendly messages
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const [page, setPage] = useState(0);
 
   const [order, setOrder] = useState('asc');
@@ -98,7 +199,7 @@ export default function EmployeesView() {
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
         <Typography variant="h4">Employees</Typography>
 
-        <Button variant="contained" color="inherit" startIcon={<Iconify icon="eva:plus-fill" />}>
+        <Button variant="contained" color="inherit"  onClick={handleAddEmployeeClick} startIcon={<Iconify icon="eva:plus-fill" />}>
           New employee
         </Button>
       </Stack>
@@ -167,6 +268,60 @@ export default function EmployeesView() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Card>
+
+
+
+
+
+      <Dialog
+        open={openAddEmployeeDialog}
+        onClose={handleCloseAddEmployeeDialog}
+        aria-labelledby="add-product-dialog-title">
+        <DialogTitle id="add-product-dialog-title">Add Emlopyee</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Employee Name"
+            fullWidth
+            margin="normal"
+            value={employeeName}
+            onChange={(event) => handleInputChange(event, setEmployeeName)}
+            required
+          />
+
+          <TextField
+            label="Date Employed"
+            type="number" // Ensure numerical input
+            fullWidth
+            margin="normal"
+            value={dateEmployed}
+            onChange={(event) => handleInputChange(event, setDateEmployed)}
+            required
+          />
+
+          <TextField
+            label="Employee Photo"
+            type="file" // File input for image selection
+            fullWidth
+            margin="normal"
+            onChange={handleImageChange}
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddEmployeeDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="primary" disabled={!employeeName || !dateEmployed}>
+            Add Employee
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+
+
+
+
     </Container>
   );
 }
