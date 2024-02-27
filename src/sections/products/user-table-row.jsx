@@ -17,6 +17,7 @@ import Iconify from 'src/components/iconify';
 export default function UserTableRow({
   selected,
   name,
+  id,
   imgUrl,
   quantity,
   description,
@@ -48,6 +49,8 @@ export default function UserTableRow({
             </Typography>
           </Stack>
         </TableCell>
+
+        <TableCell>{id}</TableCell>
 
         <TableCell>{quantity}</TableCell>
 
@@ -88,6 +91,7 @@ export default function UserTableRow({
 
 UserTableRow.propTypes = {
   imgUrl: PropTypes.any,
+  id: PropTypes.any,
   name: PropTypes.any,
   handleClick: PropTypes.func,
   quantity: PropTypes.any,

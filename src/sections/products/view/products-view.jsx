@@ -61,6 +61,7 @@ export default function ProductsView() {
 
 
       await setDoc(docRef, {
+        id: productCode,
         name: productName,
         quantity: Number(productQuantity), // Ensure productQuantity is a number
         description: productDescription,
@@ -230,6 +231,7 @@ export default function ProductsView() {
                 onSelectAllClick={handleSelectAllClick}
                 headLabel={[
                   { id: 'name', label: 'Name' },
+                  {id: "id", label:'Product Code'},
                   { id: 'quantity', label: 'Quantity' },
                   { id: 'description', label: 'Description' },
                   { id: 'price', label: 'Price' },
@@ -243,6 +245,7 @@ export default function ProductsView() {
                     <UserTableRow
                       key={row.id}
                       name={row.name}
+                      id={row.id}
                       quantity={row.quantity}
                       description={row.description}
                       price={row.price}
